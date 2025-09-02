@@ -1,0 +1,727 @@
+<!DOCTYPE html>  
+<html lang="id">  
+<head>  
+  <meta charset="UTF-8" />  
+  <title>Panel Admin | AntamGrow</title>  
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">  
+  <style>  
+    body { font-family: Arial, sans-serif; background:#121212; color:#fff; margin:0; padding:20px; }  
+    h2 { color:#f5c518; text-align:center; }  
+    .logout-admin { position:fixed; top:15px; right:15px; background:red; color:white; padding:10px 15px; border:none; border-radius:6px; cursor:pointer; }  
+    .tab { display:flex; flex-wrap:wrap; justify-content:center; margin:60px 0 20px; }  
+    .tab button { background:#1c1c1c; border:1px solid #f5c518; color:#f5c518; padding:10px 20px; cursor:pointer; margin:5px; border-radius:5px; }  
+    .tab button.active { background:#f5c518; color:#000; }  
+    .content { display:none; }  
+    .content.active { display:block; }  
+    .box { background:#1c1c1c; margin-bottom:15px; padding:15px; border-radius:10px; box-shadow:0 0 5px #f5c51844; }  
+    .btns { margin-top:10px; display: flex; justify-content: space-between; gap: 20px; }  
+    .btns button { padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; flex:1; transition: all 0.3s ease; }  
+    .btns button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }  
+    .btns button:active { transform: translateY(1px); }  
+    .acc { background:#4caf50; color:#fff; }  
+    .tolak { background:#f44336; color:#fff; }  
+    table { width:100%; border-collapse:collapse; margin-top:10px; background:#1c1c1c; border-radius:8px; overflow:hidden; }  
+    th, td { border:1px solid #333; padding:8px; text-align:left; }  
+    th { background:#f5c518; color:#000; }  
+    .edit-btn { background:#2196F3; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; }  
+    .delete-btn { background:#f44336; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; margin-left:5px; }  
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; }  
+    .modal-content { background:#222; padding:20px; border-radius:10px; width:300px; box-shadow:0 0 10px #000; }  
+    .modal-content h3 { margin-top:0; color:#f5c518; }  
+    .modal-content input { width:100%; padding:8px; margin:10px 0; border:none; border-radius:5px; }  
+    .modal-content button { padding:8px 14px; border:none; border-radius:6px; cursor:pointer; }  
+    .save-btn { background:#4caf50; color:white; }  
+    .close-btn { background:#f44336; color:white; float:right; }  
+    .search-container { margin-bottom: 15px; display: flex; gap: 10px; }  
+    .search-container input { flex: 1; padding: 8px; border-radius: 5px; border: none; background: #333; color: white; }  
+    .search-container button { padding: 8px 15px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }  /* Animations */  
+@keyframes fadeOut {  
+  from { opacity: 1; transform: scale(1); }  
+  to { opacity: 0; transform: scale(0.95); }  
+}  
+@keyframes pulse {  
+  0% { transform: scale(1); }  
+  50% { transform: scale(1.05); }  
+  100% { transform: scale(1); }  
+}  
+.processing { animation: pulse 1s infinite; opacity: 0.7; }  
+.success { background: #2e7d32 !important; }  
+.error { background: #c62828 !important; }
+
+  </style>  
+</head>  
+<body>  
+<script>  
+if(localStorage.getItem("isAdmin")!=="true"){window.location.href="admin-login.html";}  
+</script>  <button onclick="logoutAdmin()" class="logout-admin">Logout</button>
+
+<h2>Panel Admin</h2>  <div class="tab">  
+  <button id="btn-deposit" class="active">Deposit</button>  
+  <button id="btn-penarikan">Penarikan</button>  
+  <button id="btn-edit-saldo">Edit Saldo</button>  
+  <button id="btn-transaksi">Cek Transaksi</button>  
+  <button id="btn-cek-user">Cek User</button>  
+  <button id="btn-laporan">Laporan Keuangan</button>  
+  <button id="btn-riwayat">Riwayat Admin</button>  
+</div>  <div id="deposit-content" class="content active"></div>  
+<div id="penarikan-content" class="content"></div>  <!-- ✅ Daftar User -->  <div id="edit-saldo-content" class="content">  
+  <h3>✏️ Daftar User & Saldo</h3>  
+  <div class="search-container">  
+    <input type="text" id="searchUser" placeholder="Cari berdasarkan No HP atau Nama...">  
+    <button onclick="filterUsers()">Cari</button>  
+    <button onclick="resetSearch()">Reset</button>  
+  </div>  
+  <table>  
+    <thead>  
+      <tr><th>No HP</th><th>Nama</th><th>Password</th><th>Referral</th><th>Upline</th><th>Saldo</th><th>Aksi</th></tr>  
+    </thead>  
+    <tbody id="userTable"></tbody>  
+  </table>  
+</div>  <div id="transaksi-content" class="content"><h3>📜 Semua Transaksi</h3><div id="listTransaksi"></div></div>  
+<div id="cek-user-content" class="content">  
+  <h3>🔍 Cek Data User</h3>  
+  <input id="cekNoHp" placeholder="Masukkan No HP">  
+  <button class="edit-btn" id="btnCariUser">Cari</button>  
+  <div id="userDetail" style="margin-top:10px;"></div>  
+</div>  <div id="laporan-content" class="content">  
+  <h3>📊 Laporan Keuangan</h3>  
+  <div class="search-container">  
+    <label>Dari:</label><input type="date" id="tglAwal">  
+    <label>Sampai:</label><input type="date" id="tglAkhir">  
+    <button class="edit-btn" id="btnFilterLaporan">Filter</button>  
+  </div>  
+  <div id="ringkasan"></div>  
+  <table>  
+    <thead>  
+      <tr><th>Jenis</th><th>Jumlah</th><th>Waktu</th><th>Status</th></tr>  
+    </thead>  
+    <tbody id="tabelLaporan"></tbody>  
+  </table>  
+</div>  <div id="riwayat-content" class="content">  
+  <h3>📜 Riwayat ACC/TOLAK</h3>  
+  <div id="listRiwayat"></div>  
+</div>  <!-- ✅ Modal Edit Saldo -->  <div id="editModal" class="modal">  
+  <div class="modal-content">  
+    <button class="close-btn" onclick="closeModal()">X</button>  
+    <h3>Edit Saldo User</h3>  
+    <p id="modalUser"></p>  
+    <input type="number" id="newSaldo" placeholder="Saldo baru">  
+    <button class="save-btn" onclick="saveSaldo()">Simpan</button>  
+  </div>  
+</div>  <!-- ✅ Modal Konfirmasi Hapus User -->  <div id="deleteModal" class="modal">  
+  <div class="modal-content">  
+    <button class="close-btn" onclick="closeDeleteModal()">X</button>  
+    <h3>Hapus User</h3>  
+    <p id="deleteUserText">Anda yakin ingin menghapus user ini?</p>  
+    <div style="display:flex; justify-content:space-between; margin-top:20px;">  
+      <button class="tolak" onclick="closeDeleteModal()">Batal</button>  
+      <button class="acc" onclick="confirmDeleteUser()">Hapus</button>  
+    </div>  
+  </div>  
+</div>  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>  <script>  
+// Initialize Firebase  
+const firebaseConfig = {  
+  apiKey: "AIzaSyB_eFit5rt0-wOHMp30sw5rsOUzgU1jbQ8",  
+  authDomain: "antamgrow.firebaseapp.com",  
+  databaseURL: "https://antamgrow-default-rtdb.firebaseio.com",  
+  projectId: "antamgrow",  
+  storageBucket: "antamgrow.appspot.com",  
+  messagingSenderId: "890745577643",  
+  appId: "1:890745577643:web:04b8d319cbff04caa497ee"  
+};  
+  
+// Initialize Firebase  
+firebase.initializeApp(firebaseConfig);  
+const db = firebase.database();  
+  
+// 🔹 Tab Navigasi  
+const tabs = {  
+  "btn-deposit": "deposit-content",  
+  "btn-penarikan": "penarikan-content",  
+  "btn-edit-saldo": "edit-saldo-content",  
+  "btn-transaksi": "transaksi-content",  
+  "btn-cek-user": "cek-user-content",  
+  "btn-laporan": "laporan-content",  
+  "btn-riwayat": "riwayat-content"  
+};  
+  
+Object.keys(tabs).forEach(id => {  
+  document.getElementById(id).onclick = () => {  
+    document.querySelectorAll(".content").forEach(c => c.classList.remove("active"));  
+    document.querySelectorAll(".tab button").forEach(b => b.classList.remove("active"));  
+    document.getElementById(tabs[id]).classList.add("active");  
+    document.getElementById(id).classList.add("active");  
+      
+    if (id === "btn-riwayat") {  
+      loadRiwayatAdmin();  
+    }  
+  };  
+});  
+  
+// ✅ Modal Edit Saldo  
+let currentUser = "";  
+window.openModal = (nohp, saldo) => {  
+  currentUser = nohp;  
+  document.getElementById("modalUser").textContent = `User: ${nohp} | Saldo: Rp${saldo.toLocaleString()}`;  
+  document.getElementById("newSaldo").value = saldo;  
+  document.getElementById("editModal").style.display = "flex";  
+};  
+  
+window.closeModal = () => document.getElementById("editModal").style.display = "none";  
+  
+window.saveSaldo = async () => {  
+  const val = parseInt(document.getElementById("newSaldo").value);  
+  if (isNaN(val)) return alert("Masukkan saldo valid");  
+  try {  
+    await firebase.database().ref(`users/${currentUser}`).update({ saldo: val });  
+    closeModal();  
+    alert("Saldo berhasil diperbarui!");  
+  } catch (error) {  
+    console.error("Error updating balance:", error);  
+    alert("Gagal memperbarui saldo: " + error.message);  
+  }  
+};  
+  
+// ✅ Modal Hapus User  
+let userToDelete = null;  
+  
+window.openDeleteModal = (nohp, nama) => {  
+  userToDelete = nohp;  
+  document.getElementById("deleteUserText").textContent = `Anda yakin ingin menghapus user ${nohp} (${nama})?`;  
+  document.getElementById("deleteModal").style.display = "flex";  
+};  
+  
+window.closeDeleteModal = () => {  
+  document.getElementById("deleteModal").style.display = "none";  
+  userToDelete = null;  
+};  
+  
+window.confirmDeleteUser = async () => {  
+  if (!userToDelete) return;  
+    
+  try {  
+    // Hapus user dari database  
+    await firebase.database().ref(`users/${userToDelete}`).remove();  
+      
+    // Hapus juga data transaksi user jika ada  
+    await firebase.database().ref(`transaksi/deposit/${userToDelete}`).remove();  
+    await firebase.database().ref(`transaksi/penarikan/${userToDelete}`).remove();  
+      
+    // Catat riwayat  
+    const riwayat = {  
+      jenis: 'user',  
+      aksi: 'hapus',  
+      user: userToDelete,  
+      waktu: new Date().toISOString()  
+    };  
+    await firebase.database().ref('riwayat_admin').push(riwayat);  
+      
+    closeDeleteModal();  
+    alert("User berhasil dihapus!");  
+  } catch (error) {  
+    console.error("Error deleting user:", error);  
+    alert("Gagal menghapus user: " + error.message);  
+  }  
+};  
+  
+// Store all users data for search functionality  
+let allUsersData = [];  
+  
+// ✅ Daftar User Lengkap dengan fitur pencarian  
+firebase.database().ref('users').on('value', (snap) => {  
+  const tbody = document.getElementById('userTable');  
+  tbody.innerHTML = '';  
+  allUsersData = [];  
+    
+  if (snap.exists()) {  
+    snap.forEach((u) => {  
+      const data = u.val();  
+      const user = {  
+        nohp: u.key,  
+        nama: data.nama || '-',  
+        password: data.password || '-',  
+        referral: data.referral || '-',  
+        upline: data.upline || '-',  
+        saldo: data.saldo || 0  
+      };  
+      allUsersData.push(user);  
+        
+      const tr = document.createElement('tr');  
+      tr.innerHTML = `  
+        <td>${user.nohp}</td>  
+        <td>${user.nama}</td>  
+        <td>${user.password}</td>  
+        <td>${user.referral}</td>  
+        <td>${user.upline}</td>  
+        <td>Rp${user.saldo.toLocaleString()}</td>  
+        <td>  
+          <button class="edit-btn" onclick="openModal('${user.nohp}',${user.saldo})">✏️ Edit</button>  
+          <button class="delete-btn" onclick="openDeleteModal('${user.nohp}','${user.nama}')">🗑️ Hapus</button>  
+        </td>  
+      `;  
+      tbody.appendChild(tr);  
+    });  
+  } else {  
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Tidak ada data user</td></tr>';  
+  }  
+});  
+  
+// ✅ Fitur pencarian user  
+window.filterUsers = function() {  
+  const searchTerm = document.getElementById('searchUser').value.toLowerCase();  
+  const tbody = document.getElementById('userTable');  
+  tbody.innerHTML = '';  
+    
+  const filteredUsers = allUsersData.filter(user =>   
+    user.nohp.toLowerCase().includes(searchTerm) ||   
+    user.nama.toLowerCase().includes(searchTerm)  
+  ).sort((a, b) => a.nama.localeCompare(b.nama));  
+    
+  if (filteredUsers.length === 0) {  
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Tidak ada user yang ditemukan</td></tr>';  
+    return;  
+  }  
+    
+  filteredUsers.forEach(user => {  
+    const tr = document.createElement('tr');  
+    tr.innerHTML = `  
+      <td>${user.nohp}</td>  
+      <td>${user.nama}</td>  
+      <td>${user.password}</td>  
+      <td>${user.referral}</td>  
+      <td>${user.upline}</td>  
+      <td>Rp${user.saldo.toLocaleString()}</td>  
+      <td>  
+        <button class="edit-btn" onclick="openModal('${user.nohp}',${user.saldo})">✏️ Edit</button>  
+        <button class="delete-btn" onclick="openDeleteModal('${user.nohp}','${user.nama}')">🗑️ Hapus</button>  
+      </td>  
+    `;  
+    tbody.appendChild(tr);  
+  });  
+};  
+  
+window.resetSearch = function() {  
+  document.getElementById('searchUser').value = '';  
+  filterUsers();  
+};  
+  
+// ✅ Fitur Cek User  
+document.getElementById("btnCariUser").addEventListener("click", async () => {  
+  const nohp = document.getElementById("cekNoHp").value.trim();  
+  if (!nohp) return alert("Masukkan No HP yang ingin dicari");  
+  
+  try {  
+    const snap = await firebase.database().ref("users/" + nohp).once('value');  
+    const detail = document.getElementById("userDetail");  
+  
+    if (snap.exists()) {  
+      const data = snap.val();  
+      detail.innerHTML = `  
+        <div class="box">  
+          <p><b>📱 No HP:</b> ${nohp}</p>  
+          <p><b>👤 Nama:</b> ${data.nama || "-"}</p>  
+          <p><b>🔑 Password:</b> ${data.password || "-"}</p>  
+          <p><b>🎯 Referral:</b> ${data.referral || "-"}</p>  
+          <p><b>📞 Upline:</b> ${data.upline || "-"}</p>  
+          <p><b>💰 Saldo:</b> Rp${(data.saldo || 0).toLocaleString()}</p>  
+          <p><b>📅 Tanggal Daftar:</b> ${data.tanggal_daftar || "-"}</p>  
+          <div style="margin-top:10px;">  
+            <button class="edit-btn" onclick="openModal('${nohp}',${data.saldo || 0})">✏️ Edit Saldo</button>  
+            <button class="delete-btn" onclick="openDeleteModal('${nohp}','${data.nama || '-'}')">🗑️ Hapus User</button>  
+          </div>  
+        </div>  
+      `;  
+    } else {  
+      detail.innerHTML = `<p style="color:red">❌ User dengan No HP ${nohp} tidak ditemukan.</p>`;  
+    }  
+  } catch (error) {  
+    console.error("Error searching user:", error);  
+    alert("Gagal mencari user: " + error.message);  
+  }  
+});  
+  
+// ✅ Deposit dengan animasi dan feedback lebih baik  
+firebase.database().ref('deposit').on('value', (snap) => {  
+  const c = document.getElementById('deposit-content');  
+  c.innerHTML = snap.exists() ? '' : '<p>Tidak ada deposit.</p>';  
+    
+  if (snap.exists()) {  
+    snap.forEach((user) => {  
+      user.forEach((trx) => {  
+        const d = trx.val();  
+        if (d.status !== 'pending') return;  
+          
+        const box = document.createElement('div');  
+        box.className = 'box';  
+        box.innerHTML = `  
+          <p><b>📱 User:</b> ${user.key}</p>  
+          <p><b>👤 Nama Pengirim:</b> ${d.pengirim || '-'}</p>  
+          <p><b>💰 Jumlah:</b> Rp${d.jumlah.toLocaleString()}</p>  
+          <p><b>🏦 Metode:</b> ${d.metode || '-'}</p>  
+          <p><b>📅 Waktu:</b> ${d.tanggal || new Date().toLocaleString("id-ID")}</p>  
+          <div class="btns">  
+            <button class="acc">ACC</button>  
+            <button class="tolak">TOLAK</button>  
+          </div>  
+        `;  
+          
+        const accBtn = box.querySelector('.acc');  
+        const tolakBtn = box.querySelector('.tolak');  
+          
+        accBtn.onclick = async () => {  
+          if (!confirm('Anda yakin ingin menyetujui deposit ini?')) return;  
+            
+          try {  
+            // Add processing state  
+            accBtn.disabled = true;  
+            tolakBtn.disabled = true;  
+            accBtn.classList.add('processing');  
+              
+            await firebase.database().ref(`deposit/${user.key}/${trx.key}`).update({ status: 'acc' });  
+            const s = await firebase.database().ref(`users/${user.key}/saldo`).once('value');  
+            await firebase.database().ref(`users/${user.key}`).update({ saldo: (s.val() || 0) + d.jumlah });  
+              
+            // Catat riwayat  
+            const riwayat = {  
+              jenis: 'deposit',  
+              aksi: 'acc',  
+              user: user.key,  
+              jumlah: d.jumlah,  
+              waktu: new Date().toISOString()  
+            };  
+            await firebase.database().ref('riwayat_admin').push(riwayat);  
+              
+            accBtn.classList.remove('processing');  
+            accBtn.classList.add('success');  
+            accBtn.textContent = '✓ Berhasil';  
+              
+            // Fade out the box  
+            box.style.animation = 'fadeOut 0.5s forwards';  
+            setTimeout(() => box.remove(), 500);  
+          } catch (error) {  
+            console.error("Error approving deposit:", error);  
+            accBtn.classList.remove('processing');  
+            accBtn.classList.add('error');  
+            accBtn.textContent = 'Gagal';  
+            setTimeout(() => {  
+              accBtn.classList.remove('error');  
+              accBtn.textContent = 'ACC';  
+              accBtn.disabled = false;  
+              tolakBtn.disabled = false;  
+            }, 1000);  
+            alert("Gagal menyetujui deposit: " + error.message);  
+          }  
+        };  
+          
+        tolakBtn.onclick = async () => {  
+          if (!confirm('Anda yakin ingin menolak deposit ini?')) return;  
+            
+          try {  
+            // Add processing state  
+            accBtn.disabled = true;  
+            tolakBtn.disabled = true;  
+            tolakBtn.classList.add('processing');  
+              
+            await firebase.database().ref(`deposit/${user.key}/${trx.key}`).update({ status: 'ditolak' });  
+              
+            // Catat riwayat  
+            const riwayat = {  
+              jenis: 'deposit',  
+              aksi: 'tolak',  
+              user: user.key,  
+              jumlah: d.jumlah,  
+              waktu: new Date().toISOString()  
+            };  
+            await firebase.database().ref('riwayat_admin').push(riwayat);  
+              
+            tolakBtn.classList.remove('processing');  
+            tolakBtn.classList.add('success');  
+            tolakBtn.textContent = '✓ Ditolak';  
+              
+            // Fade out the box  
+            box.style.animation = 'fadeOut 0.5s forwards';  
+            setTimeout(() => box.remove(), 500);  
+          } catch (error) {  
+            console.error("Error rejecting deposit:", error);  
+            tolakBtn.classList.remove('processing');  
+            tolakBtn.classList.add('error');  
+            tolakBtn.textContent = 'Gagal';  
+            setTimeout(() => {  
+              tolakBtn.classList.remove('error');  
+              tolakBtn.textContent = 'TOLAK';  
+              accBtn.disabled = false;  
+              tolakBtn.disabled = false;  
+            }, 1000);  
+            alert("Gagal menolak deposit: " + error.message);  
+          }  
+        };  
+          
+        c.appendChild(box);  
+      });  
+    });  
+  }  
+});  
+  
+// ✅ Penarikan dengan animasi dan feedback lebih baik  
+firebase.database().ref('transaksi/penarikan').on('value', (snap) => {  
+  const c = document.getElementById('penarikan-content');  
+  c.innerHTML = snap.exists() ? '' : '<p>Tidak ada penarikan.</p>';  
+    
+  if (snap.exists()) {  
+    snap.forEach((user) => {  
+      user.forEach((trx) => {  
+        const d = trx.val();  
+        if (d.status !== 'pending') return;  
+          
+        const box = document.createElement('div');  
+        box.className = 'box';  
+        box.innerHTML = `  
+          <p><b>📱 No HP:</b> ${d.nohp}</p>  
+          <p><b>🏦 Metode:</b> ${d.metode}</p>  
+          <p><b>🔢 Rekening/E-Wallet:</b> ${d.rekening}</p>  
+          <p><b>👤 Nama Penerima:</b> ${d.nama}</p>  
+          <p><b>💰 Jumlah Tarik:</b> Rp${d.jumlah.toLocaleString()}</p>  
+          <p><b>✂️ Potongan:</b> Rp${(d.potongan || 0).toLocaleString()}</p>  
+          <p><b>📥 Total Terima:</b> Rp${(d.total_terima || 0).toLocaleString()}</p>  
+          <p><b>📅 Waktu:</b> ${new Date(d.waktu || Date.now()).toLocaleString("id-ID")}</p>  
+          <div class="btns">  
+            <button class="acc">ACC</button>  
+            <button class="tolak">TOLAK</button>  
+          </div>  
+        `;  
+          
+        const accBtn = box.querySelector('.acc');  
+        const tolakBtn = box.querySelector('.tolak');  
+          
+        accBtn.onclick = async () => {  
+          if (!confirm('Anda yakin ingin menyetujui penarikan ini?')) return;  
+            
+          try {  
+            // Add processing state  
+            accBtn.disabled = true;  
+            tolakBtn.disabled = true;  
+            accBtn.classList.add('processing');  
+              
+            await firebase.database().ref(`transaksi/penarikan/${user.key}/${trx.key}`).update({ status: 'acc' });  
+              
+            // Catat riwayat  
+            const riwayat = {  
+              jenis: 'penarikan',  
+              aksi: 'acc',  
+              user: d.nohp,  
+              jumlah: d.jumlah,  
+              waktu: new Date().toISOString()  
+            };  
+            await firebase.database().ref('riwayat_admin').push(riwayat);  
+              
+            accBtn.classList.remove('processing');  
+            accBtn.classList.add('success');  
+            accBtn.textContent = '✓ Berhasil';  
+              
+            // Fade out the box  
+            box.style.animation = 'fadeOut 0.5s forwards';  
+            setTimeout(() => box.remove(), 500);  
+          } catch (error) {  
+            console.error("Error approving withdrawal:", error);  
+            accBtn.classList.remove('processing');  
+            accBtn.classList.add('error');  
+            accBtn.textContent = 'Gagal';  
+            setTimeout(() => {  
+              accBtn.classList.remove('error');  
+              accBtn.textContent = 'ACC';  
+              accBtn.disabled = false;  
+              tolakBtn.disabled = false;  
+            }, 1000);  
+            alert("Gagal menyetujui penarikan: " + error.message);  
+          }  
+        };  
+          
+        tolakBtn.onclick = async () => {  
+          if (!confirm('Anda yakin ingin menolak penarikan ini?')) return;  
+            
+          try {  
+            // Add processing state  
+            accBtn.disabled = true;  
+            tolakBtn.disabled = true;  
+            tolakBtn.classList.add('processing');  
+              
+            await firebase.database().ref(`transaksi/penarikan/${user.key}/${trx.key}`).update({ status: 'ditolak' });  
+            const s = await firebase.database().ref(`users/${d.nohp}/saldo`).once('value');  
+            await firebase.database().ref(`users/${d.nohp}`).update({ saldo: (s.val() || 0) + d.jumlah });  
+              
+            // Catat riwayat  
+            const riwayat = {  
+              jenis: 'penarikan',  
+              aksi: 'tolak',  
+              user: d.nohp,  
+              jumlah: d.jumlah,  
+              waktu: new Date().toISOString()  
+            };  
+            await firebase.database().ref('riwayat_admin').push(riwayat);  
+              
+            tolakBtn.classList.remove('processing');  
+            tolakBtn.classList.add('success');  
+            tolakBtn.textContent = '✓ Ditolak';  
+              
+            // Fade out the box  
+            box.style.animation = 'fadeOut 0.5s forwards';  
+            setTimeout(() => box.remove(), 500);  
+          } catch (error) {  
+            console.error("Error rejecting withdrawal:", error);  
+            tolakBtn.classList.remove('processing');  
+            tolakBtn.classList.add('error');  
+            tolakBtn.textContent = 'Gagal';  
+            setTimeout(() => {  
+              tolakBtn.classList.remove('error');  
+              tolakBtn.textContent = 'TOLAK';  
+              accBtn.disabled = false;  
+              tolakBtn.disabled = false;  
+            }, 1000);  
+            alert("Gagal menolak penarikan: " + error.message);  
+          }  
+        };  
+          
+        c.appendChild(box);  
+      });  
+    });  
+  }  
+});  
+  
+// ✅ Cek Transaksi  
+firebase.database().ref('transaksi').on('value', (snap) => {  
+  const container = document.getElementById('listTransaksi');  
+  container.innerHTML = '';  
+    
+  if (snap.exists()) {  
+    snap.forEach((jenisSnap) => {  
+      jenisSnap.forEach((userSnap) => {  
+        userSnap.forEach((trxSnap) => {  
+          const trx = trxSnap.val();  
+          const box = document.createElement('div');  
+          box.className = 'box';  
+            
+          box.innerHTML = `  
+            <p><b>📱 User:</b> ${userSnap.key}</p>  
+            <p><b>📌 Jenis:</b> ${jenisSnap.key === 'deposit' ? 'Deposit' : 'Penarikan'}</p>  
+            <p><b>💰 Jumlah:</b> Rp${trx.jumlah.toLocaleString()}</p>  
+            <p><b>✅ Status:</b> ${trx.status || 'pending'}</p>  
+            <p><b>📅 Waktu:</b> ${new Date(trx.tanggal || trx.waktu).toLocaleString("id-ID")}</p>  
+          `;  
+            
+          container.appendChild(box);  
+        });  
+      });  
+    });  
+  } else {  
+    container.innerHTML = '<p>Belum ada transaksi</p>';  
+  }  
+});  
+  
+// ✅ Laporan Keuangan  
+document.getElementById('btnFilterLaporan').addEventListener('click', async () => {  
+  const tglAwal = document.getElementById('tglAwal').value;  
+  const tglAkhir = document.getElementById('tglAkhir').value;  
+    
+  if (!tglAwal || !tglAkhir) {  
+    alert('Harap pilih tanggal awal dan akhir');  
+    return;  
+  }  
+    
+  try {  
+    const snapshot = await firebase.database().ref('transaksi').once('value');  
+    const tabel = document.getElementById('tabelLaporan');  
+    tabel.innerHTML = '';  
+      
+    if (snapshot.exists()) {  
+      let totalDeposit = 0;  
+      let totalPenarikan = 0;  
+        
+      snapshot.forEach((jenisSnap) => {  
+        jenisSnap.forEach((userSnap) => {  
+          userSnap.forEach((trxSnap) => {  
+            const trx = trxSnap.val();  
+            const trxDate = new Date(trx.tanggal || trx.waktu || Date.now()).toISOString().split('T')[0];  
+              
+            if (trxDate >= tglAwal && trxDate <= tglAkhir) {  
+              const row = document.createElement('tr');  
+              row.innerHTML = `  
+                <td>${jenisSnap.key === 'deposit' ? 'Deposit' : 'Penarikan'}</td>  
+                <td>Rp${trx.jumlah.toLocaleString()}</td>  
+                <td>${new Date(trx.tanggal || trx.waktu).toLocaleString("id-ID")}</td>  
+                <td>${trx.status || 'pending'}</td>  
+              `;  
+              tabel.appendChild(row);  
+                
+              if (jenisSnap.key === 'deposit' && trx.status === 'acc') {  
+                totalDeposit += trx.jumlah;  
+              } else if (jenisSnap.key === 'penarikan' && trx.status === 'acc') {  
+                totalPenarikan += trx.jumlah;  
+              }  
+            }  
+          });  
+        });  
+      });  
+        
+      document.getElementById('ringkasan').innerHTML = `  
+        <div class="box">  
+          <h4>Ringkasan</h4>  
+          <p>Total Deposit: Rp${totalDeposit.toLocaleString()}</p>  
+          <p>Total Penarikan: Rp${totalPenarikan.toLocaleString()}</p>  
+          <p>Saldo Bersih: Rp${(totalDeposit - totalPenarikan).toLocaleString()}</p>  
+        </div>  
+      `;  
+    } else {  
+      tabel.innerHTML = '<tr><td colspan="4">Tidak ada transaksi dalam rentang tanggal ini</td></tr>';  
+    }  
+  } catch (error) {  
+    console.error("Error generating report:", error);  
+    alert("Gagal memuat laporan: " + error.message);  
+  }  
+});  
+  
+// ✅ Riwayat Admin  
+function loadRiwayatAdmin() {  
+  firebase.database().ref('riwayat_admin').on('value', (snap) => {  
+    const container = document.getElementById('listRiwayat');  
+    container.innerHTML = '';  
+      
+    if (snap.exists()) {  
+      const riwayatItems = [];  
+        
+      snap.forEach((item) => {  
+        const data = item.val();  
+        riwayatItems.push({  
+          key: item.key,  
+          waktu: data.waktu,  
+          ...data  
+        });  
+      });  
+        
+      // Urutkan berdasarkan waktu terbaru  
+      riwayatItems.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));  
+        
+      riwayatItems.forEach((data) => {  
+        const box = document.createElement('div');  
+        box.className = 'box';  
+        box.innerHTML = `  
+          <p><b>📅 Waktu:</b> ${new Date(data.waktu).toLocaleString("id-ID")}</p>  
+          <p><b>📱 User:</b> ${data.user}</p>  
+          <p><b>📌 Jenis:</b> ${data.jenis}</p>  
+          <p><b>✅ Aksi:</b> ${data.aksi.toUpperCase()}</p>  
+          ${data.jumlah ? `<p><b>💰 Jumlah:</b> Rp${data.jumlah.toLocaleString()}</p>` : ''}  
+        `;  
+        container.appendChild(box);  
+      });  
+    } else {  
+      container.innerHTML = '<p>Belum ada riwayat</p>';  
+    }  
+  });  
+}  
+  
+// Logout function  
+window.logoutAdmin = function() {  
+  localStorage.removeItem("isAdmin");  
+  window.location.href = "admin-login.html";  
+};  
+</script>  </body>  
+</html>
